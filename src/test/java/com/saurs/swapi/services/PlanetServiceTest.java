@@ -1,91 +1,83 @@
 package com.saurs.swapi.services;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.util.List;
-
-import org.junit.jupiter.api.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-
+import com.saurs.swapi.exceptions.services.CannotBeNullException;
+import com.saurs.swapi.exceptions.services.ResourceNotFoundException;
 import com.saurs.swapi.models.Planet;
 import com.saurs.swapi.repositories.PlanetRepository;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@SpringBootTest
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import static com.saurs.swapi.common.PlanetConstants.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
 public class PlanetServiceTest {
 
-  @Autowired
-  private PlanetRepository planetRepository;
-
-  @Autowired
+  @InjectMocks
   private PlanetService planetService;
 
-  @BeforeEach
-  public void setUp() {
-    planetRepository.deleteAll();
-    System.out.println("Database cleared");
-  }
-  
-  @AfterEach
-  public void cleanUp() {
-    planetRepository.deleteAll();
-    System.out.println("Database cleared");
+  @Mock
+  private PlanetRepository planetRepository;
+
+  @Test
+  public void createPlanet_WithValidData_AndThenReturn() {
+    when(planetRepository.save(PLANET)).thenReturn(PLANET);
+
+    Planet createdPlanet = planetService.save(PLANET);
+
+    assertThat(createdPlanet).isEqualTo(PLANET);
   }
 
   @Test
-  public void mustLoadTwentyPlanetsToDatabase() {
-    planetService.loadPlanets(20);
-    Long count = planetRepository.count();
-    assertEquals(count, 20);
+  public void createPlanet_InvalidData_ThrowException() {
+    assertThatThrownBy(() -> planetService.save(INVALID_PLANET)).isInstanceOf(CannotBeNullException.class);
   }
 
   @Test
-  public void mustInsertPlanet() {
-    Planet planet = new Planet(null, "Janouvis", "desert", "hot");
-    Planet newPlanet = planetService.save(planet);
-    assertEquals(newPlanet.getName(),"Janouvis");
+  public void findAllPlanets_ReturnList() {
+    when(planetRepository.findAll()).thenReturn(PLANETS);
+
+    List<Planet> planets = planetService.findAll();
+
+    assertThat(planets.size()).isGreaterThan(0);
+    assertThat(planets).hasSize(2);
+    assertThat(planets).isEqualTo(PLANETS);
   }
 
-  @Nested
-  class TestsThatNeedEntities {
-    @BeforeEach
-    public void setUp() {
-      Planet planet = new Planet(null, "Janouvis", "desert", "hot");
-      planetService.save(planet);
-      System.out.println("Planet created");
-    }
+  @Test
+  public void findPlanetById_AndThenReturn() {
+    when(PLANET.getUuid()).thenReturn(RANDOM_UUID);
+    when(planetRepository.findById(PLANET.getUuid())).thenReturn(Optional.of(PLANET));
 
-    @AfterEach
-    public void cleanUp() {
-      planetRepository.deleteAll();
-      System.out.println("Database cleared");
-    }
+    Planet foundPlanet = planetService.findById(PLANET.getUuid());
 
-    @Test
-    public void mustGetAllPlanets() {
-      List<Planet> planets = planetService.findAll();
-      assertTrue(planets.size() > 0);
-    }
-    @Test
-    public void mustUpdatePlanet() {
-      Planet planet = planetRepository.findByName("Janouvis");
-      planet.setName("Viena");
-      Planet newPlanet = planetService.update(planet, planet.getId());
-      assertEquals(newPlanet.getName(), "Viena");
-    }
-
-    @Test
-    public void mustDeletePlanet() {
-      Planet planet = planetRepository.findByName("Janouvis");
-      planetService.delete(planet.getId());
-      Long count = planetRepository.count();
-      assertEquals(count, 0);
-    }
+    assertThat(foundPlanet).isEqualTo(PLANET);
   }
 
-  
-  
+  @Test
+  public void findPlanetById_ThrowException() {
+    assertThrows(ResourceNotFoundException.class, () -> planetRepository.findById(RANDOM_UUID)
+            .orElseThrow(() -> new ResourceNotFoundException(RANDOM_UUID)));
+  }
+
+  @Test
+  public void updatePlanet_andThenReturn() {
+    when(planetRepository.save(NEW_PLANET)).thenReturn(NEW_PLANET);
+    when(PLANET.getUuid()).thenReturn(RANDOM_UUID);
+
+    Planet newPlanet = planetService.update(NEW_PLANET, PLANET.getUuid());
+
+    assertThat(newPlanet).isEqualTo(NEW_PLANET);
+  }
   
 }

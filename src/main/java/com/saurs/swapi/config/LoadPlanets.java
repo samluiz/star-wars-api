@@ -17,7 +17,7 @@ public LoadPlanets(PlanetService service) {
 
 @PostConstruct
 public void init() {
-  service.loadPlanets(20);
+  service.loadPlanets();
 }
 
 }

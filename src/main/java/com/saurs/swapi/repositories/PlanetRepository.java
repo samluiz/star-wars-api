@@ -4,6 +4,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.saurs.swapi.models.Planet;
 
-public interface PlanetRepository extends JpaRepository<Planet, Long> {
-  Planet findByName(String name);
+import java.util.List;
+import java.util.UUID;
+
+public interface PlanetRepository extends JpaRepository<Planet, UUID> {
+  List<Planet> findByName(String name);
 }
